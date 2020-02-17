@@ -23,7 +23,7 @@ So please give it a try and feel free to file issues or requests for feature enh
 
 - [Using](#using)
 - [Installing](#installing)
-- [Work Folders](#work-folders)a
+- [Work Folders](#work-folders)
 - [Contributing](#contributing)
 - [Contact](#contact)
 - [License](#license)

@@ -1,5 +1,9 @@
-# bingo
-Bingo - The missing package manager for "go get"
+# Bingo: The missing package manager for golang binaries
+![GitHub repo size](https://img.shields.io/github/repo-size/TekWizely/bingo)<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)<!-- ALL-CONTRIBUTORS-BADGE:END -->
+![GitHub stars](https://img.shields.io/github/stars/TekWizely/bingo?style=social)
+![GitHub forks](https://img.shields.io/github/forks/TekWizely/bingo?style=social)
+![Twitter Follow](https://img.shields.io/twitter/follow/TekWizely?style=social)
 
 Bingo is a wrapper for the go toolchain to make installing and managing golang-compiled binaries a bit easier.
 

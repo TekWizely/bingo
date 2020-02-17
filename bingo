@@ -3,7 +3,7 @@
 BINGO_VERSION="0.1.0"
 # ##############################################################################
 #
-# BINGO - The missing package manager for "go get"
+# BINGO - The missing package manager for golang binaries
 #
 # 	Bingo is a wrapper for the go toolchain to make installing and managing
 # 	golang applications a bit easier

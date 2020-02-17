@@ -1,0 +1,361 @@
+#!/usr/bin/env run shebang
+
+BINGO_VERSION="0.1.0"
+# ##############################################################################
+#
+# BINGO - The missing package manager for "go get"
+#
+# 	Bingo is a wrapper for the go toolchain to make installing and managing
+# 	golang applications a bit easier
+#
+# Project Home
+#
+#   https://github.com/TekWizely/bingo
+#
+# Requirement: RUN
+#
+#   Bingo exists as a Runfile, and requires the Run tool to operate:
+#
+#       https://github.com/TekWizely/run
+#
+# Work Folders
+#
+#   Bingo requires the following work folders:
+#
+#       Bin Folder     : Where compiled binaries are installed
+#       Package Folder : Where packages are downloaded / compiled
+#       Cache Folder   : Where to store Go cache files
+#
+# Shell Variables
+#
+#   Individual
+#
+#       Each of these folders can be individually configured via shell
+#       variables:
+#
+#       $BINGO_BIN
+#       $BINGO_PKG
+#       $BINGO_CACHE
+#
+#   Fallback: BINGO_HOME
+#
+#       If the $BINGO_HOME variable is defined, bingo will use it as a fall-back
+#       for any folder that is not individually configured, i.e:
+#
+#       $BINGO_HOME/bin
+#       $BINGO_HOME/pkg
+#       $BINGO_HOME/cache
+#
+#   Default: HOME/.bingo
+#
+#       As a final default, bingo will use $HOME/.bingo i.e:
+#
+#       $HOME/.bingo/bin
+#       $HOME/.bingo/pkg
+#       $HOME/.bingo/cache
+#
+#	License
+#
+#		The bingo project is released under the MIT License:
+#
+#				https://opensource.org/licenses/MIT
+#
+# ##############################################################################
+
+.SHELL = bash
+
+# Assumes runfile is executable
+#
+EXPORT BINGO ?= ${.RUNFILE}
+
+##
+# Show bingo version
+# EXPORT BINGO_VERSION
+#
+## NOTE: Generates an error if invoked outside of 'shebang' mode.
+#
+version:
+	echo ${BINGO_VERSION}
+
+##
+# Install a package + binary
+# Compiles a package and installs the compiled binary into the
+# configured bin folder.
+#
+# OPTION cmd -n,--name <name> Specify name to use for installed binary
+# OPTION QUIET -q,--quiet Limit output to error messages
+# USAGE <package>
+# USAGE (install under default name)
+# USAGE -n <name> <package>
+# USAGE (install under alternative name)
+#
+install:
+	set -e
+
+	pkg="${1}"
+
+	if [ -z "${pkg}" ]; then
+		echo "No package provided"
+		exit 2
+	fi
+
+	eval $( "${BINGO}" shellenv )
+
+	if [ -z "${cmd}" ]; then
+		cmd="$( basename "${pkg}" )"
+	fi
+
+	if [ -z "${cmd}" ]; then
+		echo "Unable to determine binary name" 1>&2
+		exit 2
+	fi
+
+	export GOPATH="${BINGO_PKG}/${cmd}"
+
+	if [ -d "${GOPATH}" ]; then
+		echo "Package with name ${cmd} appears to already exist at ${GOPATH}" 1>&2
+		exit 2
+	fi
+
+	[ -z "${QUIET}" ] && echo "Installing binary ${cmd} from package ${pkg}"
+
+	[ -z "${QUIET}" ] && echo "Downloading package (folder: '${GOPATH}')"
+	go get -d "${pkg}"
+
+	[ -z "${QUIET}" ] && echo "Compiling package"
+	go build -o "${GOPATH}/bin/cmd" "${pkg}"
+
+	echo "${pkg}" > "${GOPATH}/pkg.txt"
+
+	[ -z "${QUIET}" ] && echo "Installing binary (file: '${BINGO_BIN}/${cmd}')"
+	ln -s "${GOPATH}/bin/cmd" "${BINGO_BIN}/${cmd}"
+
+	[ -z "${QUIET}" ] && echo "Done"
+
+##
+# Uninstall a package + binary
+#
+# OPTION QUIET -q,--quiet Limit output to error messages
+# USAGE <cmd>
+#
+uninstall:
+	set -e
+
+	cmd="${1}"
+
+	if [ -z "${cmd}" ]; then
+		echo "No binary provided. See 'bingo help uninstall'" 1>&2
+		exit 2
+	fi
+
+	eval $( "${BINGO}" shellenv )
+
+	if [ ! -e "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} not found in ${BINGO_BIN}" 1>&2
+		exit 2
+	fi
+
+	if [ ! -L "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	PKG_CMD=$( readlink "${BINGO_BIN}/${cmd}" )
+
+	if [[ "${PKG_CMD}" != "${BINGO_PKG}"* ]] ; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	PKG_BIN=$( dirname "${PKG_CMD}" )
+
+	export GOPATH=$(dirname "${PKG_BIN}")
+
+	PKG_NAME=${GOPATH#$BINGO_PKG/}
+
+	if [[ "${PKG_NAME}" != "${cmd}" ]]; then
+		echo "Binary ${cmd} does match package installed name ${PKG_NAME}" 1>&2
+		exit 2
+	fi
+
+	pkg="<unknown>"
+	if [ -f "${GOPATH}/pkg.txt" ]; then
+		pkg="$( cat "${GOPATH}/pkg.txt" )"
+	fi
+
+	[ -z "${QUIET}" ] && echo "Uninstalling binary ${cmd} from package ${pkg}"
+
+	[ -z "${QUIET}" ] && echo "Removing binary (file: '${BINGO_BIN}/${cmd}')"
+	rm "${BINGO_BIN}/${cmd}"
+
+	[ -z "${QUIET}" ] && echo "Removing package (folder: '${GOPATH}')"
+	rm -rf "${GOPATH}"
+
+	[ -z "${QUIET}" ] && echo "Done"
+
+##
+# print a binary's package name
+#
+package:
+	set -e
+
+	cmd="${1}"
+
+	if [ -z "${cmd}" ]; then
+		echo "No binary provided" 1>&2
+		exit 2
+	fi
+
+	eval $( "${BINGO}" shellenv )
+
+	if [ ! -e "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} not found in ${BINGO_BIN}" 1>&2
+		exit 2
+	fi
+
+	if [ ! -L "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	PKG_CMD=$( readlink "${BINGO_BIN}/${cmd}" )
+
+	if [[ "${PKG_CMD}" != "${BINGO_PKG}"* ]] ; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	PKG_BIN=$( dirname "${PKG_CMD}" )
+
+	GOPATH=$( dirname "${PKG_BIN}" )
+
+	if [ ! -f "${GOPATH}/pkg.txt" ]; then
+		echo "[ERROR] No pkg.txt file found in ${GOPATH}" 1>&2
+		exit 2
+	fi
+
+	pkg="$( cat "${GOPATH}/pkg.txt" )"
+
+	echo "${pkg}"
+
+##
+# List all bingo-managed binaries in the configured bin folder
+#
+# OPTION QUIET     -q Limit generated output
+# OPTION SHOW_PKGS -p,--packages Show binary's associated package
+#
+installed:
+	set -e
+
+	eval $( "${BINGO}" shellenv )
+
+	[ -z "${QUIET}" ] && echo "Bingo-managed binaries (folder: '${BINGO_BIN}')"
+	[ -z "${QUIET}" ] && echo ""
+
+	for cmd in $(ls -1 "${BINGO_BIN}/" ); do # TODO: A better way to glob this?
+		if [ ! -e "${BINGO_BIN}/${cmd}" ]; then
+			continue
+		fi
+
+		if [ ! -L "${BINGO_BIN}/${cmd}" ]; then
+			continue
+		fi
+
+		# Skip if not a bingo-managed binary
+		PKG_CMD=$( readlink "${BINGO_BIN}/${cmd}" )
+		if [[ "${PKG_CMD}" != "${BINGO_PKG}"* ]] ; then
+			continue
+		fi
+
+		prefix=" - "
+		[ -z "${QUIET}" ] || prefix=""
+
+		if [ -z "${SHOW_PKGS}" ]; then
+				echo "${prefix}${cmd}"
+		else
+			PKG_BIN=$( dirname "${PKG_CMD}" )
+			GOPATH=$(dirname "${PKG_BIN}")
+			pkg="?"
+			if [ -f "${GOPATH}/pkg.txt" ]; then
+				pkg="$( cat "${GOPATH}/pkg.txt" )"
+			fi
+			echo  "${prefix}${cmd} ${pkg}"
+		fi
+
+	done
+
+##
+# Print bingo bin folder path
+#
+bin:
+	set -e
+
+	eval $( "${BINGO}" shellenv )
+
+	echo "${BINGO_BIN}"
+
+##
+# (for internal use)
+# Generates shell statements for settings bingo constants.
+#
+shellenv:
+	set -e
+
+	# BIN
+	#
+	if [ -z "${BINGO_BIN}" ]; then
+		if [ -z "${BINGO_HOME}" ]; then
+			if [ -z "${HOME}" ]; then
+				echo "Cannot determine bingo bin directory" 1>&2
+				exit 2
+			fi
+			BINGO_BIN="${HOME}/.bingo/bin"
+		else
+			BINGO_BIN="${BINGO_HOME}/bin"
+		fi
+	fi
+	if [ ! -d "${BINGO_BIN}" ]; then
+		mkdir -p "${BINGO_BIN}"
+	fi
+
+	# PKG
+	#
+	if [ -z "${BINGO_PKG}" ]; then
+		if [ -z "${BINGO_HOME}" ]; then
+			if [ -z "${HOME}" ]; then
+				echo "Cannot determine bingo pkg directory" 1>&2
+				exit 2
+			fi
+			BINGO_PKG="${HOME}/.bingo/pkg"
+		else
+			BINGO_PKG="${BINGO_HOME}/pkg"
+		fi
+	fi
+	if [ ! -d "${BINGO_PKG}" ]; then
+		mkdir -p "${BINGO_PKG}"
+	fi
+
+	# CACHE
+	#
+	if [ -z "${BINGO_CACHE}" ]; then
+		if [ -z "${BINGO_HOME}" ]; then
+			if [ -z "${HOME}" ]; then
+				echo "Cannot determine bingo cache directory" 1>&2
+				exit 2
+			fi
+			BINGO_CACHE="${HOME}/.bingo/cache"
+		else
+			BINGO_CACHE="${BINGO_HOME}/cache"
+		fi
+	fi
+	if [ ! -d "${BINGO_CACHE}" ]; then
+		mkdir -p "${BINGO_CACHE}"
+	fi
+
+	echo "export BINGO_BIN='${BINGO_BIN}'"
+	echo "export BINGO_PKG='${BINGO_PKG}'"
+	echo "export BINGO_CACHE='${BINGO_CACHE}'"
+	echo "export GOBIN=''"
+	echo "export GOCACHE='${BINGO_CACHE}'"
+	echo "export GOPROXY='https://proxy.golang.org,direct'"
+	echo "export GO111MODULE=auto"

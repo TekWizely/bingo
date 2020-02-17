@@ -1,0 +1,6 @@
+# Bingo work folders (for local dev)
+bin
+cache
+pkg
+
+.envrc

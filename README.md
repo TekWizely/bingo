@@ -5,19 +5,17 @@
 ![GitHub forks](https://img.shields.io/github/forks/TekWizely/bingo?style=social)
 ![Twitter Follow](https://img.shields.io/twitter/follow/TekWizely?style=social)
 
-Bingo is a wrapper for the go toolchain to make installing and managing golang-compiled binaries a bit easier.
+Do you love the simplicity of being able to download & compile golang applications with `'go get'`, but wish it were easier to manage the compiled binaries?
 
-#### Relating A Golang Binary To Its Package
+Bingo makes installing and managing golang-compiled binaries a bit easier.
 
-One pain point when using `go get` to install binaries is that, once the binary is installed, there's no means of relating that binary to its original source package.
+#### Features
 
-Bingo tries to solve that problem by maintaining a link between an installed binary and its package.
-
-#### A Toy Trying To Take Itself Seriously
-
-Although designed as a set of toy scripts to play around with the idea, bingo is trying to take itself seriously and make a real run at being a useful tool.
-
-So please give it a try and feel free to file issues or requests for feature enhancements !
+* Keeps a link between the installed binary and the source package
+* Can install binaries to a location of your choice
+* Can control the name of the installed binary
+* Can install multiple versions of the same package (using different names for the binary)
+* Each binary's source package is isolated and managed in its own separate `$GOROOT`
 
 #### TOC
 
@@ -142,6 +140,7 @@ Bingo doesn't yet have an `upgrade` command.
 
 For now, you can uninstall, then re-install, a binary to get the latest version.
 
+---------------
 ## Requirements
 
 #### Run

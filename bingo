@@ -5,8 +5,8 @@ BINGO_VERSION="0.1.0"
 #
 # BINGO - The missing package manager for golang binaries
 #
-# 	Bingo is a wrapper for the go toolchain to make installing and managing
-# 	golang applications a bit easier
+#   Bingo is a wrapper for the go toolchain to make installing and managing
+#   golang applications a bit easier
 #
 # Project Home
 #
@@ -16,22 +16,21 @@ BINGO_VERSION="0.1.0"
 #
 #   Bingo exists as a Runfile, and requires the Run tool to operate:
 #
-#       https://github.com/TekWizely/run
+#     https://github.com/TekWizely/run
 #
 # Work Folders
 #
 #   Bingo requires the following work folders:
 #
-#       Bin Folder     : Where compiled binaries are installed
-#       Package Folder : Where packages are downloaded / compiled
-#       Cache Folder   : Where to store Go cache files
+#     Bin Folder     : Where compiled binaries are installed
+#     Package Folder : Where packages are downloaded / compiled
+#     Cache Folder   : Where to store Go cache files
 #
 # Shell Variables
 #
 #   Individual
 #
-#       Each of these folders can be individually configured via shell
-#       variables:
+#     Each of these folders can be individually configured via shell variables:
 #
 #       $BINGO_BIN
 #       $BINGO_PKG
@@ -39,8 +38,8 @@ BINGO_VERSION="0.1.0"
 #
 #   Fallback: BINGO_HOME
 #
-#       If the $BINGO_HOME variable is defined, bingo will use it as a fall-back
-#       for any folder that is not individually configured, i.e:
+#     If the $BINGO_HOME variable is defined, bingo will use it as a fall-back
+#     for any folder that is not individually configured, i.e:
 #
 #       $BINGO_HOME/bin
 #       $BINGO_HOME/pkg
@@ -48,17 +47,17 @@ BINGO_VERSION="0.1.0"
 #
 #   Default: HOME/.bingo
 #
-#       As a final default, bingo will use $HOME/.bingo i.e:
+#     As a final default, bingo will use $HOME/.bingo i.e:
 #
 #       $HOME/.bingo/bin
 #       $HOME/.bingo/pkg
 #       $HOME/.bingo/cache
 #
-#	License
+# License
 #
-#		The bingo project is released under the MIT License:
+#   The bingo project is released under the MIT License:
 #
-#				https://opensource.org/licenses/MIT
+#     https://opensource.org/licenses/MIT
 #
 # ##############################################################################
 

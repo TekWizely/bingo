@@ -1,6 +1,6 @@
 #!/usr/bin/env run shebang
 
-BINGO_VERSION="0.1.0"
+BINGO_VERSION="0.2.0"
 # ##############################################################################
 #
 # BINGO - The missing package manager for golang binaries
@@ -80,10 +80,15 @@ version:
 # Compiles a package and installs the compiled binary into the
 # configured bin folder.
 #
-# OPTION cmd -n,--name <name> Specify name to use for installed binary
-# OPTION QUIET -q,--quiet Limit output to error messages
+# OPTION cmd     -n,--name    <name>    Specify name to use for installed binary
+# OPTION version    --version <version> Specify package version
+# OPTION QUIET   -q,--quiet             Limit output to error messages
 # USAGE <package>
 # USAGE (install under default name)
+# USAGE <package>@<version>
+# USAGE (install specific version)
+# USAGE --version <version> <package>
+# USAGE (install specific version)
 # USAGE -n <name> <package>
 # USAGE (install under alternative name)
 #
@@ -91,16 +96,32 @@ install:
 	set -e
 
 	pkg="${1}"
-
 	if [ -z "${pkg}" ]; then
-		echo "No package provided"
+		echo "No package provided. See 'bingo help install'" 1>&2
 		exit 2
 	fi
 
 	eval $( "${BINGO}" shellenv )
 
+	pkgversion="${pkg#*@}"
+	if [ "${pkgversion}" == "${pkg}" ]; then
+		unset pkgversion
+	fi
+
+	if [ -n "${version}" -a -n "${pkgversion}" -a "${version}" != "${pkgversion}" ]; then
+		echo "Detected 2 different version specifiers ('${version}' != '${pkgversion}')" 1>&2
+		exit 2
+	fi
+
+	if [ ! -z "${pkgversion}" ]; then
+		export pkg="${pkg%@*}"
+		export version="${pkgversion}"
+	fi
+
+	pkgbin="$( basename "${pkg}" )"
+
 	if [ -z "${cmd}" ]; then
-		cmd="$( basename "${pkg}" )"
+		cmd="${pkgbin}"
 	fi
 
 	if [ -z "${cmd}" ]; then
@@ -108,25 +129,158 @@ install:
 		exit 2
 	fi
 
-	export GOPATH="${BINGO_PKG}/${cmd}"
-
-	if [ -d "${GOPATH}" ]; then
-		echo "Package with name ${cmd} appears to already exist at ${GOPATH}" 1>&2
+	if [ -e "${BINGO_BIN}/${cmd}" ]; then
+		echo "Command ${cmd} already exists at ${BINGO_BIN}"  1>&2
 		exit 2
 	fi
 
-	[ -z "${QUIET}" ] && echo "Installing binary ${cmd} from package ${pkg}"
+	PKG_ROOT="${BINGO_PKG}/${cmd}"
 
-	[ -z "${QUIET}" ] && echo "Downloading package (folder: '${GOPATH}')"
-	go get -d "${pkg}"
+	if [ -z "${PKG_ROOT}" ]; then
+		echo "Unable to determine package root folder" 1>&2
+		exit 2
+	fi
 
-	[ -z "${QUIET}" ] && echo "Compiling package"
-	go build -o "${GOPATH}/bin/cmd" "${pkg}"
+	if [ -d "${PKG_ROOT}" ]; then
+		echo "Package with name ${cmd} appears to already exist at ${PKG_ROOT}" 1>&2
+		exit 2
+	fi
 
-	echo "${pkg}" > "${GOPATH}/pkg.txt"
+	mkdir -p "${PKG_ROOT}"
+
+	if [ ! -d "${PKG_ROOT}" ]; then
+		echo "Unable to create package root folder ${PKG_ROOT}" 1>&2
+		exit 2
+	fi
+
+	# Trap errors and try to cleanup
+	function _remove_pkg_root {
+		rc=$?
+		if [ "${rc}" != "0" ]; then
+			echo "Error detected, attempting to cleanup ${PKG_ROOT}" 1>&2
+			go clean --modcache
+			rm -rf "${PKG_ROOT}"
+		fi
+		exit ${rc}
+	}
+	trap _remove_pkg_root EXIT
+
+	export GOPATH="${PKG_ROOT}"
+	cd "${GOPATH}"
+
+	export GOBIN="${GOPATH}/bin"
+
+	VERBOSE=""
+	[ -z "${QUIET}" ] && VERBOSE="1"
+
+	[ -z "${QUIET}" ] && echo "Installing binary ${cmd} from package ${pkg}${version:+@$version}"
+	[ -z "${QUIET}" ] && echo "Downloading & compiling package (folder: '${PKG_ROOT}')"
+	go get "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
+
+	PKG_CMD="${GOBIN}/${pkgbin}"
+
+	if [ ! -f "${PKG_CMD}" ]; then
+		echo "Compiled binary ${pkgbin} not found" 1>&2
+		exit 2
+	fi
+
+	if [ ! -x "${PKG_CMD}" ]; then
+		echo "Compiled binary ${pkgbin} is not executable" 1>&2
+		exit 2
+	fi
 
 	[ -z "${QUIET}" ] && echo "Installing binary (file: '${BINGO_BIN}/${cmd}')"
-	ln -s "${GOPATH}/bin/cmd" "${BINGO_BIN}/${cmd}"
+	echo "${pkg}" > "${PKG_ROOT}/pkg.txt"
+	ln -s "${PKG_CMD}" "${BINGO_BIN}/${cmd}"
+
+	[ -z "${QUIET}" ] && echo "Done"
+
+	exit 0 # Ensure trap gets 0 on success
+
+##
+# Update a binary's package
+#
+# OPTION QUIET    -q,--quiet             Limit output to error messages
+# OPTION version     --version <version> Specify package version
+# USAGE <cmd>
+# USAGE (update to latest version)
+# USAGE <cmd>@<version>
+# USAGE (update to specific version)
+# USAGE --version <version> <cmd>
+# USAGE (update to specific version)
+#
+update:
+	set -e
+
+	cmd="${1}"
+	if [ -z "${cmd}" ]; then
+		echo "No binary provided. See 'bingo help update'" 1>&2
+		exit 2
+	fi
+
+	eval $( "${BINGO}" shellenv )
+
+	pkgversion="${cmd#*@}"
+	if [ "${pkgversion}" == "${cmd}" ]; then
+		unset pkgversion
+	fi
+
+	if [ -n "${version}" -a -n "${pkgversion}" -a "${version}" != "${pkgversion}" ]; then
+		echo "Detected 2 different version specifiers ('${version}' != '${pkgversion}')" 1>&2
+		exit 2
+	fi
+
+	if [ ! -z "${pkgversion}" ]; then
+		export cmd="${cmd%@*}"
+		export version="${pkgversion}"
+	fi
+
+	if [ ! -e "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} not found in ${BINGO_BIN}" 1>&2
+		exit 2
+	fi
+
+	if [ ! -L "${BINGO_BIN}/${cmd}" ]; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	PKG_CMD=$( readlink "${BINGO_BIN}/${cmd}" )
+
+	if [[ "${PKG_CMD}" != "${BINGO_PKG}"* ]] ; then
+		echo "Binary ${cmd} does not appear to be managed by bingo" 1>&2
+		exit 2
+	fi
+
+	export GOBIN=$( dirname "${PKG_CMD}" )
+
+	PKG_ROOT=$( dirname "${GOBIN}" )
+
+	PKG_NAME=${PKG_ROOT#$BINGO_PKG/}
+
+	if [[ "${PKG_NAME}" != "${cmd}" ]]; then
+		echo "Binary ${cmd} does not match not package installed name ${PKG_NAME}" 1>&2
+		exit 2
+	fi
+
+	pkg=""
+	if [ -f "${PKG_ROOT}/pkg.txt" ]; then
+		pkg="$( cat "${PKG_ROOT}/pkg.txt" )"
+	fi
+
+	if [ -z "${pkg}" ]; then
+		echo "Unable to determine package name for binary ${cmd}" 1>&2
+		exit 2
+	fi
+
+	export GOPATH="${PKG_ROOT}"
+	cd "${GOPATH}"
+
+	VERBOSE=""
+	[ -z "${QUIET}" ] && VERBOSE="1"
+
+	[ -z "${QUIET}" ] && echo "Updating ${cmd} package ${pkg}${version:+ to $version}"
+	go get "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
 
 	[ -z "${QUIET}" ] && echo "Done"
 
@@ -140,7 +294,6 @@ uninstall:
 	set -e
 
 	cmd="${1}"
-
 	if [ -z "${cmd}" ]; then
 		echo "No binary provided. See 'bingo help uninstall'" 1>&2
 		exit 2
@@ -165,29 +318,38 @@ uninstall:
 		exit 2
 	fi
 
-	PKG_BIN=$( dirname "${PKG_CMD}" )
+	export GOBIN=$( dirname "${PKG_CMD}" )
 
-	export GOPATH=$(dirname "${PKG_BIN}")
+	PKG_ROOT=$( dirname "${GOBIN}" )
 
-	PKG_NAME=${GOPATH#$BINGO_PKG/}
+	PKG_NAME=${PKG_ROOT#$BINGO_PKG/}
 
 	if [[ "${PKG_NAME}" != "${cmd}" ]]; then
 		echo "Binary ${cmd} does match package installed name ${PKG_NAME}" 1>&2
 		exit 2
 	fi
 
-	pkg="<unknown>"
-	if [ -f "${GOPATH}/pkg.txt" ]; then
-		pkg="$( cat "${GOPATH}/pkg.txt" )"
+	pkg=""
+	if [ -f "${PKG_ROOT}/pkg.txt" ]; then
+		pkg="$( cat "${PKG_ROOT}/pkg.txt" )"
 	fi
+
+	if [ -z "${pkg}" ]; then
+		echo "Unable to determine package name for binary ${cmd}" 1>&2
+		exit 2
+	fi
+
+	export GOPATH="${PKG_ROOT}"
+	cd "${GOPATH}"
 
 	[ -z "${QUIET}" ] && echo "Uninstalling binary ${cmd} from package ${pkg}"
 
 	[ -z "${QUIET}" ] && echo "Removing binary (file: '${BINGO_BIN}/${cmd}')"
 	rm "${BINGO_BIN}/${cmd}"
 
-	[ -z "${QUIET}" ] && echo "Removing package (folder: '${GOPATH}')"
-	rm -rf "${GOPATH}"
+	[ -z "${QUIET}" ] && echo "Removing package (folder: '${PKG_ROOT}')"
+	go clean --modcache
+	rm -rf "${PKG_ROOT}"
 
 	[ -z "${QUIET}" ] && echo "Done"
 
@@ -198,9 +360,8 @@ package:
 	set -e
 
 	cmd="${1}"
-
 	if [ -z "${cmd}" ]; then
-		echo "No binary provided" 1>&2
+		echo "No binary provided. See 'bingo help package'" 1>&2
 		exit 2
 	fi
 
@@ -223,16 +384,16 @@ package:
 		exit 2
 	fi
 
-	PKG_BIN=$( dirname "${PKG_CMD}" )
+	export GOBIN=$( dirname "${PKG_CMD}" )
 
-	GOPATH=$( dirname "${PKG_BIN}" )
+	PKG_ROOT=$( dirname "${GOBIN}" )
 
-	if [ ! -f "${GOPATH}/pkg.txt" ]; then
-		echo "[ERROR] No pkg.txt file found in ${GOPATH}" 1>&2
+	if [ ! -f "${PKG_ROOT}/pkg.txt" ]; then
+		echo "[ERROR] No pkg.txt file found in ${PKG_ROOT}" 1>&2
 		exit 2
 	fi
 
-	pkg="$( cat "${GOPATH}/pkg.txt" )"
+	pkg="$( cat "${PKG_ROOT}/pkg.txt" )"
 
 	echo "${pkg}"
 
@@ -271,11 +432,11 @@ installed:
 		if [ -z "${SHOW_PKGS}" ]; then
 				echo "${prefix}${cmd}"
 		else
-			PKG_BIN=$( dirname "${PKG_CMD}" )
-			GOPATH=$(dirname "${PKG_BIN}")
+			export GOBIN=$( dirname "${PKG_CMD}" )
+			PKG_ROOT=$( dirname "${GOBIN}" )
 			pkg="?"
-			if [ -f "${GOPATH}/pkg.txt" ]; then
-				pkg="$( cat "${GOPATH}/pkg.txt" )"
+			if [ -f "${PKG_ROOT}/pkg.txt" ]; then
+				pkg="$( cat "${PKG_ROOT}/pkg.txt" )"
 			fi
 			echo  "${prefix}${cmd} ${pkg}"
 		fi
@@ -353,7 +514,10 @@ shellenv:
 	echo "export BINGO_BIN='${BINGO_BIN}'"
 	echo "export BINGO_PKG='${BINGO_PKG}'"
 	echo "export BINGO_CACHE='${BINGO_CACHE}'"
-	echo "export GOBIN=''"
 	echo "export GOCACHE='${BINGO_CACHE}'"
 	echo "export GOPROXY='https://proxy.golang.org,direct'"
-	echo "export GO111MODULE=auto"
+	echo "export GO111MODULE=on"
+	# Go uses a global default if not set, so we set one.
+	# Must be overriden by command if actually needed.
+	echo "export GOPATH='/tmp/bingo_gopath'"
+	echo "export GOBIN="

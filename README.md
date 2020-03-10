@@ -31,11 +31,12 @@ Bingo makes installing and managing golang-compiled binaries a bit easier.
 
  - [Compiling + Installing Binaries](#compiling--installing-binaries)
    - [Compiling 'Complicated' Packages](#compiling-complicated-packages)
+   - [Specifying Package Version](#specifying-package-version)
    - [Binary Naming](#binary-naming)
  - [Listing Installed Binaries](#listing-installed-binaries)
  - [Displaying A Binary's Associated Package](#displaying-a-binarys-associated-package)
+ - [Updating Binaries](#updating-binaries)
  - [Uninstalling Binaries / Packages](#uninstalling-binaries--packages)
- - [Upgrading Binaries](#upgrading-binaries)
 
 ------------------------------------
 #### Compiling + Installing Binaries
@@ -47,8 +48,9 @@ _hello example_
 $ bingo install github.com/golang/example/hello
 
 Installing binary hello from package github.com/golang/example/hello
-Downloading package (folder: '~/.bingo/pkg/hello')
-Compiling package
+Downloading & compiling package (folder: '~/.bingo/pkg/hello')
+go: downloading github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
+go: found github.com/golang/example/hello in github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
 Installing binary (file: '~/.bingo/bin/hello')
 Done
 
@@ -67,6 +69,24 @@ Packages that require a more complex build process are not supported at this tim
 ##### Installation Folder
 
 See the [Work Folders](#work-folders) section for details on configuring the various folders needed by bingo, including which folder to install binaries in.
+
+##### Specifying Package Version
+
+You can specify which version of a package to install.
+
+###### '@version' Syntax
+
+_install example using @version syntax_
+```
+$ bingo install github.com/golang/example/hello@v1.2.3
+```
+
+###### '--version' Option
+
+_install example using --version option_
+```
+$ bingo install --version v1.2.3 github.com/golang/example/hello
+```
 
 ##### Binary Naming
 
@@ -114,6 +134,40 @@ $ bingo package hello
 github.com/golang/example/hello
 ```
 
+#### Updating Binaries
+
+To update an installed binary, use the `update` command:
+
+```
+$ bingo update hello
+
+Updating hello package github.com/golang/example/hello
+go: found github.com/golang/example/hello in github.com/golang/example v0.0.0-20170904185048-46695d81d1fa
+Done
+```
+
+*NOTE*: By default, the resulting package version will be determined by Go's version resolution rules.
+
+##### Specifying Package Version
+
+You can specify which version of a package to update to.
+
+*NOTE*: The target version does not have to be newer than the existing version.  i.e you can update to an older version of the package.
+
+###### '@version' Syntax
+
+_update example using @version syntax_
+```
+$ bingo update hello@v1.2.3
+```
+
+###### '--version' Option
+
+_update example using --version option_
+```
+$ bingo update --version v1.2.3 hello
+```
+
 #### Uninstalling Binaries / Packages
 
 Use the `uninstall` command to uninstall binaries:
@@ -132,13 +186,6 @@ hello
 ```
 
 *NOTE*: Uninstalling a binary also removes the associated package folder.
-
-#### Upgrading Binaries
-*TBD*
-
-Bingo doesn't yet have an `upgrade` command.
-
-For now, you can uninstall, then re-install, a binary to get the latest version.
 
 ---------------
 ## Requirements

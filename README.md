@@ -74,7 +74,7 @@ See the [Work Folders](#work-folders) section for details on configuring the var
 
 You can specify which version of a package to install.
 
-###### '@version' Syntax
+###### '@<!-- -->version' Syntax
 
 _install example using @version syntax_
 ```
@@ -154,7 +154,7 @@ You can specify which version of a package to update to.
 
 *NOTE*: The target version does not have to be newer than the existing version.  i.e you can update to an older version of the package.
 
-###### '@version' Syntax
+###### '@<!-- -->version' Syntax
 
 _update example using @version syntax_
 ```

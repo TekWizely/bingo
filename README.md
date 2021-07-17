@@ -273,7 +273,7 @@ As a final default, bingo will use $HOME/.bingo i.e:
 ---------------
 ## Contributing
 
-To contribute to Run, follow these steps:
+To contribute to Bingo, follow these steps:
 
 1. Fork this repository.
 2. Create a branch: `git checkout -b <branch_name>`.

@@ -5,17 +5,18 @@
 ![GitHub forks](https://img.shields.io/github/forks/TekWizely/bingo?style=social)
 ![Twitter Follow](https://img.shields.io/twitter/follow/TekWizely?style=social)
 
-Do you love the simplicity of being able to download & compile golang applications with `'go install'`, but wish it were easier to manage the compiled binaries?
+Do you love the simplicity of being able to download & compile golang applications with `go install`, but wish it were easier to manage the compiled binaries?
 
-Bingo makes installing and managing golang-compiled binaries a bit easier.
+Bingo makes installing and managing `go install`\-based packages a lot easier.
 
 #### Features
 
 * Keeps a link between the installed binary and the source package
+* Can update / uninstall binaries using the name of the binary (i.e `bingo update goimports`)
 * Can install binaries to a location of your choice
 * Can control the name of the installed binary
-* Can install multiple versions of the same package (using different names for the binary)
-* Each binary's source package is isolated and managed in its own separate `$GOROOT`
+* Can install multiple versions of the same package (using different names for the binaries)
+* Each binary's source packages are isolated and managed in their own separate `$GOROOT`
 
 #### TOC
 

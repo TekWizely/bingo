@@ -1,11 +1,11 @@
-# Bingo: The missing package manager for golang binaries<br/>(its *homebrew* for "go get")
+# Bingo: The missing package manager for golang binaries<br/>(its *homebrew* for "go install")
 ![GitHub repo size](https://img.shields.io/github/repo-size/TekWizely/bingo)<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)<!-- ALL-CONTRIBUTORS-BADGE:END -->
 ![GitHub stars](https://img.shields.io/github/stars/TekWizely/bingo?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/TekWizely/bingo?style=social)
 ![Twitter Follow](https://img.shields.io/twitter/follow/TekWizely?style=social)
 
-Do you love the simplicity of being able to download & compile golang applications with `'go get'`, but wish it were easier to manage the compiled binaries?
+Do you love the simplicity of being able to download & compile golang applications with `'go install'`, but wish it were easier to manage the compiled binaries?
 
 Bingo makes installing and managing golang-compiled binaries a bit easier.
 
@@ -33,6 +33,7 @@ Bingo makes installing and managing golang-compiled binaries a bit easier.
    - [Compiling 'Complicated' Packages](#compiling-complicated-packages)
    - [Specifying Package Version](#specifying-package-version)
    - [Binary Naming](#binary-naming)
+   - [Using Go Get](#using-go-get)
  - [Listing Installed Binaries](#listing-installed-binaries)
  - [Displaying A Binary's Associated Package](#displaying-a-binarys-associated-package)
  - [Updating Binaries](#updating-binaries)
@@ -41,7 +42,7 @@ Bingo makes installing and managing golang-compiled binaries a bit easier.
 ------------------------------------
 #### Compiling + Installing Binaries
 
-To install a binary with bingo, use the golang application's full package path, same as you would with `"go get"`.
+To install a binary with bingo, use the golang application's full package path, same as you would with `"go install"`.
 
 _hello example_
 ```
@@ -62,7 +63,7 @@ Hello, Go examples!
 ##### Compiling 'Complicated' Packages
 *TBD*
 
-Currently, bingo only supports packages which can be directly compiled via `go get`.
+Currently, bingo only supports packages which can be directly downloaded + compiled + installed via `go install` (or [go get](#using-go-get) for pre v1.16).
 
 Packages that require a more complex build process are not supported at this time.
 
@@ -104,6 +105,24 @@ $ ~/.bingo/bin/foo
 
 Hello, Go examples!
 ```
+
+##### Using Go Get
+
+By default, bingo uses `go install` to download + compile + install packages.
+
+If you're using a version of go prior to v1.16, you can instruct bingo to use `go get`:
+
+_install example using --useget option_
+```
+$ bingo install --useget github.com/golang/example/hello
+```
+
+_install example using BINGO_USE_GET variable_
+```
+$ BINGO_USE_GET=1 bingo install github.com/golang/example/hello
+```
+
+**NOTE:** Both of these work for the `bingo update` command as well.
 
 #### Listing Installed Binaries
 

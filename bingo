@@ -1,6 +1,6 @@
 #!/usr/bin/env run shebang
 
-BINGO_VERSION="0.2.0"
+BINGO_VERSION="0.3.0"
 # ##############################################################################
 #
 # BINGO - The missing package manager for golang binaries
@@ -52,6 +52,20 @@ BINGO_VERSION="0.2.0"
 #       $HOME/.bingo/pkg
 #       $HOME/.bingo/cache
 #
+#   Forcing go get
+#
+#     By default, bingo uses `go install` to download + install packages.
+#     If you're using a version of go prior to v1.16, you can instruct bingo
+#     to use `go get`:
+#
+#     Via command-line:
+#
+#       bingo install --useget ...
+#
+#     Via environment variable:
+#
+#       BINGO_USE_GET=1 bingo install ...
+#
 # License
 #
 #   The bingo project is released under the MIT License:
@@ -83,6 +97,7 @@ version:
 # OPTION cmd     -n,--name    <name>    Specify name to use for installed binary
 # OPTION version    --version <version> Specify package version
 # OPTION QUIET   -q,--quiet             Limit output to error messages
+# OPTION USE_GET    --useget            Use go get instead of go install
 # USAGE <package>
 # USAGE (install under default name)
 # USAGE <package>@<version>
@@ -175,7 +190,13 @@ install:
 
 	[ -z "${QUIET}" ] && echo "Installing binary ${cmd} from package ${pkg}${version:+@$version}"
 	[ -z "${QUIET}" ] && echo "Downloading & compiling package (folder: '${PKG_ROOT}')"
-	go get "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
+
+	INSTALL="install"
+	if [ -n "${BINGO_USE_GET}" -o -n "${USE_GET}" ]; then
+		INSTALL="get"
+		[ -z "${QUIET}" ] && echo "Using 'go get' instead of 'go install'"
+	fi
+	go "${INSTALL}" "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
 
 	PKG_CMD="${GOBIN}/${pkgbin}"
 
@@ -200,8 +221,9 @@ install:
 ##
 # Update a binary's package
 #
-# OPTION QUIET    -q,--quiet             Limit output to error messages
-# OPTION version     --version <version> Specify package version
+# OPTION QUIET   -q,--quiet             Limit output to error messages
+# OPTION version    --version <version> Specify package version
+# OPTION USE_GET    --useget            Use go get instead of go install
 # USAGE <cmd>
 # USAGE (update to latest version)
 # USAGE <cmd>@<version>
@@ -280,7 +302,13 @@ update:
 	[ -z "${QUIET}" ] && VERBOSE="1"
 
 	[ -z "${QUIET}" ] && echo "Updating ${cmd} package ${pkg}${version:+ to $version}"
-	go get "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
+
+	INSTALL="install"
+	if [ -n "${BINGO_USE_GET}" -o -n "${USE_GET}" ]; then
+		INSTALL="get"
+		[ -z "${QUIET}" ] && echo "Using 'go get' instead of 'go install'"
+	fi
+	go "${INSTALL}" "${VERBOSE:+-v}" "${pkg}${version:+@$version}"
 
 	[ -z "${QUIET}" ] && echo "Done"
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env run shebang
 
-BINGO_VERSION="0.3.0"
+BINGO_VERSION="0.3.1"
 # ##############################################################################
 #
 # BINGO - The missing package manager for golang binaries
@@ -133,6 +133,8 @@ install:
 		export version="${pkgversion}"
 	fi
 
+	: ${version:='latest'}
+
 	pkgbin="$( basename "${pkg}" )"
 
 	if [ -z "${cmd}" ]; then
@@ -256,6 +258,8 @@ update:
 		export cmd="${cmd%@*}"
 		export version="${pkgversion}"
 	fi
+
+	: ${version:='latest'}
 
 	if [ ! -e "${BINGO_BIN}/${cmd}" ]; then
 		echo "Binary ${cmd} not found in ${BINGO_BIN}" 1>&2
